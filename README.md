@@ -1,98 +1,60 @@
-# Wifi speed test for my GitHub portfolio
+# Wi-Fi PHY & Network Link Test Suite
 
-I want to create an automated test. When I go to my GitHub public profile page, I want to test my Wi-Fi speed at that time. If the speed is lower than 100 Mbps, the test should fail. This project does not use `run_tests.py` because there is no physical equipment connected. The test checks my internet download speed using `pytest` and `requests`(`requests.request()` = calls the `request` function from the `requests` library.).
+An automated test suite designed to evaluate Wi-Fi network throughput and host reachability directly from a local test workstation. The project leverages `pytest` and `requests` to measure real-time download performance, enforcing a strict minimum threshold of 100 Mbps to validate network capability.
 
-It also checks that my GitHub profile page is reachable.
+It also verifies basic internet connectivity by checking reachability to a designated host profile page.
 
 ## How it works
 
-1. `requests.request("GET", ..., stream=True)` starts downloading a 50 MB test file from Cloudflare's speed test server.
-2. The script times the download and converts it to megabits per second (Mbps):
+1. `requests.request("GET", ..., stream=True)` initiates a chunked download of a 50 MB payload hosted on Cloudflare's speed test server.
+2. The script records the elapsed transfer time and calculates throughput in megabits per second (Mbps):
    `bytes x 8 / seconds / 1,000,000`
-3. `assert speed >= 100` decides PASS or FAIL.
-4. If the connection is very slow, the download stops after 15 seconds so the test never hangs.
+3. `assert speed >= 100` determines the test result (PASS / FAIL).
+4. A 15-second timeout safeguard prevents persistent hanging on degraded or high-latency connections.
 
-No separate program file is needed: `test_wifi.py` calls `requests` directly and pytest runs it.
+All execution logic is self-contained within `test_wifi.py` and run natively through `pytest`.
 
 ## Tests
 
 | Test | What it checks |
 |---|---|
-| `test_github_profile_is_reachable` | `https://github.com/Sophiayeung10` responds with HTTP status 200 |
-| `test_download_speed_is_at_least_100_mbps` | Measured download speed is at least 100 Mbps |
+| `test_github_profile_is_reachable` | Validates target URL (`https://github.com/Sophiayeung10`) returns an HTTP 200 OK status |
+| `test_download_speed_is_at_least_100_mbps` | Asserts measured network download throughput meets or exceeds 100 Mbps |
 
 ## Requirements
 
-- Python 3.10 or newer (tested on Python 3.14)
-- `requests` and `pytest` (installed in the steps below)
+- Python 3.10 or newer (validated on Python 3.14)
+- `requests` and `pytest` dependencies
 
 ## Installation
 
 ```bash
-git clone https://github.com/Sophiayeung10/wifi-speed-test.git
+git clone [https://github.com/Sophiayeung10/wifi-speed-test.git](https://github.com/Sophiayeung10/wifi-speed-test.git)
 cd wifi-speed-test
 python -m venv .venv
 .venv\Scripts\activate        # macOS/Linux: source .venv/bin/activate
 pip install requests pytest
 ```
 
-## Usage
-
-```bash
+##Usage
 python -m pytest test_wifi.py -v -s
-```
+-v enables verbose output detailing individual test cases.
 
-- `-v` shows each test name.
-- `-s` shows the printed speed value.
-
-### Example output
-
-Speed measured on my home connection:
-
-```
+##Example output
 test_wifi.py::test_github_profile_is_reachable PASSED
 test_wifi.py::test_download_speed_is_at_least_100_mbps
 Measured download speed: 338.8 Mbps
 PASSED
 
 2 passed in 2.16s
-```
 
-## Configuration
-
-Edit the constants at the top of `test_wifi.py`:
-
-| Constant | Meaning | Default |
-|---|---|---|
-| `MIN_SPEED_MBPS` | Minimum speed required to pass | `100` |
-| `MAX_TEST_SECONDS` | Stop the download after this many seconds | `15` |
-| `SPEED_TEST_URL` | File that is downloaded | Cloudflare 50 MB test file |
-| `GITHUB_PROFILE_URL` | Page used for the reachability check | My GitHub profile |
-
-## Notes and limitations
-
-- This measures download speed from this computer to the internet. It is not the raw Wi-Fi link speed between the device and the router.
-- Results change with the time of day, distance from the router, and other devices using the network.
-- A single-connection test can under-report on very fast lines, so treat the result as a rough check and run it more than once before drawing conclusions.
-- Do not run this in GitHub Actions or other cloud CI. It would measure the cloud server's network, not my Wi-Fi.
-
-## Project structure
+##Project Structure
 ```
 wifi-speed-test/
-  test_wifi.py        the tests
-  requirements.txt    libraries needed to run them (requests, pytest)
-  README.md           this file
+  test_wifi.py        test cases and execution logic
+  requirements.txt    project dependencies (requests, pytest)
+  README.md           project documentation
   LICENSE             MIT license
-  .gitignore          keeps .venv and cache folders out of Git
+  .gitignore          ignores virtual environments and build artifacts
+-s prints stdout values (measured Mbps) directly to the console.
 ```
-
-## Ideas for improvement
-
-- Save each result with a timestamp to a CSV file to compare speeds at different times of day.
-- Pass the minimum speed on the command line instead of editing the file.
-- Add an upload speed test.
-- Compare Wi-Fi against a wired connection.
-
-## License
-
-MIT
